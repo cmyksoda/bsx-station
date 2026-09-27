@@ -77,7 +77,7 @@ def test_prepare_download_patches_header():
     assert size == 0x40000 and dest == 3 and len(payload) == size
     p = 0x7FD0
     assert payload[p:p + 4] == b'\xff' * 4
-    assert payload[p + 4] == 0x01             # one limited start
+    assert payload[p + 4] == payload[p + 5] == 0   # unlimited starts
     assert payload[p + 6] == payload[p + 7] == payload[p + 0x0A] == 0xFF
 
 

@@ -53,7 +53,7 @@ def prepare_download(data: bytes, dest: int | None = None) -> tuple[bytes, int, 
     if o is not None and dest >= 1:
         p = 0x7FD0 | (0 if lorom else 0x8000)
         payload[p:p + 4] = b'\xff\xff\xff\xff'      # erase-state fields the BIOS writes after download
-        if payload[p + 5] == 0x80 and payload[p + 4] == 0:
-            payload[p + 4] = 0x01                   # a limited-start game gets one start
+        if payload[p + 5] & 0x80:
+            payload[p + 4] = payload[p + 5] = 0     # no start limit: a download stays playable
         payload[p + 6] = payload[p + 7] = payload[p + 0x0A] = 0xFF
     return bytes(payload), size, dest
