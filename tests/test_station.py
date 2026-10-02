@@ -85,6 +85,7 @@ def test_api_and_page(station):
 
 def test_catalog_rejects_duplicate_ids(tmp_path):
     p = tmp_path / 'c.yml'
-    p.write_text(yaml.safe_dump({'programs': [{'id': 'a', 'title': 'A', 'rom': 'a'}, {'id': 'a', 'title': 'B', 'rom': 'b'}]}))
+    p.write_text(yaml.safe_dump({'programs': [{'id': 'a', 'title': 'A', 'rom': 'a'},
+                                              {'id': 'a', 'title': 'B', 'rom': 'b'}]}))
     with pytest.raises(ValueError):
         load(p)
