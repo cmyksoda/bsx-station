@@ -56,7 +56,7 @@ ROMs and the catalog live **outside** this repository. Nothing here contains gam
 
 ```
 uv sync
-uv run tools/make_catalog.py /path/to/roms > catalog.yml     # then edit titles (20 bytes max)
+uv run tools/make_catalog.py /path/to/roms [no-intro.dat] > catalog.yml   # then edit titles (20 bytes max)
 cp .env.example .env                                          # set STATION_ROM_DIR etc.
 set -a; . ./.env; set +a
 uv run uvicorn --factory station.app:create_app --host 0.0.0.0 --port 8080
