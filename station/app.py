@@ -60,11 +60,17 @@ def create_app(config: Config | None = None, clock=time.time) -> FastAPI:
     def healthz():
         return {'ok': True, 'programs': len(entries)}
 
+    if config.background:
+        @app.get('/bg.png')
+        def background():
+            return FileResponse(config.background, media_type='image/png', headers={'Cache-Control': 'max-age=86400'})
+
     @app.get('/', response_class=HTMLResponse)
     def home():
         now = clock()
         data = {'now': now, 'address': config.address, 'slots': [slot_json(s) for s in schedule.upcoming(now, 24)]}
-        return HTMLResponse(PAGE.replace('{{name}}', html.escape(config.name))
+        bg = 'url(bg.png) 0 0/256px 128px' if config.background else ''
+        return HTMLResponse(PAGE.replace('{{name}}', html.escape(config.name)).replace('{{bg}}', bg)
                             .replace('{{data}}', json.dumps(data).replace('</', '<\\/')))
 
     return app
@@ -76,40 +82,47 @@ PAGE = '''<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{name}}</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
 <style>
-  :root{--sky:#dcecfb;--paper:#f7fbff;--ink:#1f2350;--soft:#56608f;--faint:#8a93bd;--line:#c5d6ee;--pink:#e0457f;--pink-bg:#fde3ee;
-    --blue:#2f7fd1;--blue-bg:#e1eefc;--sun:#f2b632;--sun-bg:#fff2cc;--red:#cf3a3a;
-    --pixel:"DotGothic16",ui-monospace,monospace;--round:"M PLUS Rounded 1c",system-ui,sans-serif}
-  @media (prefers-color-scheme: dark){:root{color-scheme:dark;--sky:#0f1236;--paper:#171b47;--ink:#e9ecff;--soft:#aab3e6;--faint:#6f79b0;
-    --line:#2b3270;--pink:#ff7aa9;--pink-bg:#3a1a3a;--blue:#79b6ff;--blue-bg:#1a2a5c;--sun:#ffd166;--sun-bg:#3a3217;--red:#ff8080}}
-  *{box-sizing:border-box} body{margin:0;background:var(--sky);color:var(--ink);font-family:var(--round);line-height:1.6;padding:24px 16px 64px}
-  .wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
-  header,.now,.tune,.guide{background:var(--paper);border:3px solid var(--ink);border-radius:18px;box-shadow:6px 6px 0 var(--accent)}
-  header{--accent:var(--pink);padding:18px 20px;display:flex;justify-content:space-between;gap:12px;align-items:start}
-  h1{font-family:var(--pixel);font-weight:400;font-size:clamp(26px,6vw,38px);margin:0;line-height:1.1}
-  .jp{font-family:var(--pixel);color:var(--pink);letter-spacing:.2em;font-size:14px}
-  .lamp{font-family:var(--pixel);background:var(--red);color:#fff;border-radius:8px;padding:4px 10px;font-size:13px;letter-spacing:.14em;white-space:nowrap}
-  .now{--accent:var(--sun);background:var(--sun-bg);padding:16px 20px}
-  .now b,.tune b{font-family:var(--pixel);font-weight:400;letter-spacing:.12em;font-size:13px}
-  .now h2{margin:4px 0;font-size:24px;line-height:1.25} .now p{margin:0;color:var(--soft)}
-  .clock{font-family:var(--pixel);font-size:30px;color:var(--pink);font-variant-numeric:tabular-nums}
-  h3{font-family:var(--pixel);font-weight:400;font-size:18px;margin:0 0 8px}
-  .guide{--accent:var(--pink);overflow:hidden}
-  .row{display:grid;grid-template-columns:5.5em 1fr;border-top:2px solid var(--line)} .row:first-child{border-top:0}
-  .row time{font-family:var(--pixel);color:var(--pink);background:var(--pink-bg);padding:10px;text-align:center;font-variant-numeric:tabular-nums}
-  .row div{padding:10px 14px} .row small{display:block;color:var(--faint)}
-  .row.live time{background:var(--pink);color:#fff}
-  .tune{--accent:var(--blue);padding:16px 20px}
-  .tune p{margin:4px 0 0;color:var(--soft)}
-  code{background:var(--blue-bg);color:var(--ink);border-radius:6px;padding:1px 6px}
-  footer{color:var(--faint);font-size:13px;text-align:center}
+  :root{--navy:#00296b;--gold:#a58400;--gold-hi:#ffff7b;--brown:#6b3100;--paper:#fff;--gray:#bdbdbd;--ink:#000;
+    --dim:#4a4a5e;--red:#942918;--lamp:#ff0033;--purple:#7339bd;--pixel:"DotGothic16",ui-monospace,monospace}
+  *{box-sizing:border-box} h1,h2,h3,b{font-weight:400}
+  body{margin:0;color:var(--ink);font-family:var(--pixel);font-size:16px;line-height:1.6;padding:24px 16px 64px;
+    background:var(--purple) {{bg}};image-rendering:pixelated}
+  .wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+  /* the town's two window kinds: navy with a gold frame, and white message boxes */
+  header,h3,.guide,footer{background:var(--navy);color:#fff;border:2px solid var(--gold);
+    box-shadow:inset 0 0 0 2px var(--gold-hi),inset 0 0 0 4px var(--gold),inset 0 0 0 6px var(--brown)}
+  .now,.tune{background:var(--paper);border:2px solid var(--ink);box-shadow:inset 0 0 0 2px var(--gray)}
+  header,h3,.guide,footer,.now,.tune{clip-path:polygon(2px 0,calc(100% - 2px) 0,100% 2px,100% calc(100% - 2px),
+    calc(100% - 2px) 100%,2px 100%,0 calc(100% - 2px),0 2px)}
+  header{padding:18px 22px;display:flex;justify-content:space-between;gap:12px;align-items:start}
+  h1{font-size:clamp(28px,7vw,40px);margin:0;line-height:1.1}
+  .jp{color:var(--gold-hi);letter-spacing:.1em}
+  .lamp{background:var(--lamp);color:#fff;border:2px solid var(--ink);padding:2px 10px;letter-spacing:.1em;white-space:nowrap}
+  .now,.tune{padding:16px 22px}
+  .now b,.tune b{color:var(--red);letter-spacing:.1em}
+  .now h2{margin:4px 0;font-size:24px;line-height:1.3} .now p{margin:0;color:var(--dim)}
+  .dots{background:linear-gradient(90deg,var(--gray) 50%,transparent 0) 0 0/4px 2px repeat-x}
+  .clock{font-size:32px;color:var(--red);font-variant-numeric:tabular-nums;margin-top:10px;padding-top:6px}
+  .tune p{margin:4px 0 0;color:var(--dim)}
+  code{font-family:var(--pixel);background:var(--navy);color:var(--gold-hi);padding:1px 8px}
+  h3{display:inline-block;font-size:18px;margin:0 0 8px 24px;padding:8px 20px 6px}
+  .guide{padding:6px}
+  .row{display:grid;grid-template-columns:7.5em 1fr}
+  .row+.row{background:linear-gradient(90deg,var(--gold) 50%,transparent 0) 0 0/4px 2px repeat-x}
+  .row time{color:var(--gold-hi);padding:10px 0 10px 12px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .row div{padding:10px 14px 10px 4px} .row small{display:block;color:var(--gray);font-size:14px}
+  .row.live{background-color:var(--red)} .row.live small{color:#f2c9bd}
+  .row.live time::before{content:"";display:inline-block;width:22px;height:22px;margin:0 6px 0 -6px;vertical-align:-5px;
+    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 11' shape-rendering='crispEdges'%3E%3Cpath d='M0 3h5V0l5.5 5.5L5 11V8H0z'/%3E%3Cpath d='M1 4h5V2.5l3 3-3 3V7H1z' fill='%23ff5577'/%3E%3C/svg%3E")}
+  footer{color:#fff;font-size:14px;padding:12px 22px}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header><div><div class="jp">サテラビュー放送局</div><h1>{{name}}</h1></div><span class="lamp">ON AIR</span></header>
-  <section class="now"><b>NOW ON AIR</b><h2 id="title">…</h2><p id="desc"></p><div class="clock" id="left"></div></section>
+  <section class="now"><b>NOW ON AIR</b><h2 id="title">…</h2><p id="desc"></p><div class="clock dots" id="left"></div></section>
   <section class="tune"><b>HOW TO TUNE IN</b><p>On a Wii with BS-X GX: Settings → Network → Station Address
     <code id="addr"></code>, then walk into the Broadcast Station in the town.</p></section>
   <section><h3>Program guide</h3><div class="guide" id="guide"></div></section>

@@ -143,6 +143,14 @@ def test_new_settings_rebuild_the_slot_on_air(station, tmp_path):
     assert [f[3] for f in before if f[0] == '0120'] != [f[3] for f in after if f[0] == '0120']
 
 
+def test_the_guide_background_is_optional(station, tmp_path):
+    client, now = station
+    assert 'url(bg.png)' not in client.get('/').text and client.get('/bg.png').status_code == 404
+    (tmp_path / 'bg.png').write_bytes(b'\x89PNG pattern')
+    themed = TestClient(create_app(config_for(tmp_path, background=str(tmp_path / 'bg.png')), clock=lambda: now[0]))
+    assert 'url(bg.png)' in themed.get('/').text and themed.get('/bg.png').content == b'\x89PNG pattern'
+
+
 def test_each_slot_gets_the_next_face(station, monkeypatch):
     client, now = station
     faces = []

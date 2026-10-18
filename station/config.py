@@ -27,3 +27,5 @@ class Config:
     epoch: int = field(default_factory=lambda: int(_env('STATION_EPOCH', '0')))
     # what the guide tells Wiis to enter, when people read it at a different address
     address: str = field(default_factory=lambda: _env('STATION_ADDRESS', ''))
+    # an image tiled behind the guide; art taken from the BIOS stays outside the repository, like the ROMs
+    background: str = field(default_factory=lambda: _env('STATION_BACKGROUND', ''))
