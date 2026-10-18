@@ -51,6 +51,33 @@ def test_schedule_is_deterministic_and_visits_everything():
     assert a.at(a.slot(7).start + 5).index == 7
 
 
+def test_series_air_back_to_back_in_episode_order():
+    singles = [Entry(f'g{i}', f'G{i}', f'{i}.sfc') for i in range(12)]
+    run = [Entry(f'z{n}', f'Z{n}', f'z{n}.sfc', series='zelda', episode=n) for n in (3, 1, 4, 2)]
+    s = Schedule(singles + run, 30, 1, 'seed')
+    starts = set()
+    for cycle in range(6):
+        aired = [s.slot(cycle * 16 + i).entries[0].id for i in range(16)]
+        first = aired.index('z1')
+        assert aired[first:first + 4] == ['z1', 'z2', 'z3', 'z4']
+        starts.add(first)
+    assert len(starts) > 1
+
+
+def test_builds_of_one_episode_take_turns():
+    a = Entry('a', 'A', 'a.sfc', series='x', episode=1)
+    b = Entry('b', 'B', 'b.sfc', series='x', episode=1)
+    s = Schedule([a, b, Entry('c', 'C', 'c.sfc')], 30, 1, 'seed')
+    aired = [s.slot(i).entries[0].id for i in range(8)]
+    assert s.episodes == 2 and aired.count('a') == aired.count('b') == 2 and aired.count('c') == 4
+
+
+def test_nothing_airs_twice_in_a_row_across_passes():
+    s = Schedule([Entry(f'g{i}', f'G{i}', f'{i}.sfc') for i in range(3)], 30, 1, 'seed')
+    aired = [s.slot(i).entries[0].id for i in range(300)]
+    assert all(x != y for x, y in zip(aired, aired[1:]))
+
+
 def test_manifest_matches_the_data(station):
     client, now = station
     head, files = parse(client.get('/wii/now.txt').text)
@@ -93,6 +120,14 @@ def test_each_slot_gets_the_next_face(station, monkeypatch):
         client.get('/wii/now.txt')
         now[0] += 30 * 60
     assert faces[1] == (faces[0] + 1) % 16 and faces[2] == (faces[0] + 2) % 16
+
+
+def test_catalog_reads_series(tmp_path):
+    p = tmp_path / 'c.yml'
+    p.write_text(yaml.safe_dump({'programs': [{'id': 'a', 'title': 'A', 'rom': 'a', 'series': 'z', 'episode': 2},
+                                              {'id': 'b', 'title': 'B', 'rom': 'b'}]}))
+    a, b = load(p)
+    assert (a.series, a.episode) == ('z', 2) and (b.series, b.episode) == ('', 0)
 
 
 def test_catalog_rejects_duplicate_ids(tmp_path):

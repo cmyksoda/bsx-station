@@ -14,11 +14,14 @@ class Entry:
     title: str          # shown in the town, max 20 bytes
     rom: str            # relative to the ROM directory
     description: str = ''
+    series: str = ''    # a series airs back to back in episode order; one episode with several entries rotates
+    episode: int = 0
 
 
 def load(path: Path) -> list[Entry]:
     data = yaml.safe_load(path.read_text()) or {}
-    entries = [Entry(str(e['id']), str(e['title'])[:20], str(e['rom']), str(e.get('description', '')))
+    entries = [Entry(str(e['id']), str(e['title'])[:20], str(e['rom']), str(e.get('description', '')),
+                     str(e.get('series', '')), int(e.get('episode', 0)))
                for e in data.get('programs', [])]
     ids = [e.id for e in entries]
     if len(ids) != len(set(ids)):

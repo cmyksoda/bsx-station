@@ -9,7 +9,8 @@ BS-X GX receivers over plain HTTP. It also has a TV-guide page for people.
 ## What it does
 
 - **A stateless schedule.** The wall clock and a seed decide what's on air, so restarts change nothing and
-  every receiver agrees. Each pass through the catalog is freshly shuffled.
+  every receiver agrees. Each pass through the catalog is freshly shuffled. A series (`series` and `episode` in the
+  catalog) airs back to back in episode order, and its block lands somewhere new on every pass.
 - **SatellaWave-compatible data.** `satdata/` is a byte-exact Python port of SatellaWave's export (channel
   map, town status, welcome message, directory, and the flash-friendly header patch for downloads).
 - **Built on demand.** A slot's channel files are generated the first time someone asks for them and kept
