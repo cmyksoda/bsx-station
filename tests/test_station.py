@@ -143,6 +143,14 @@ def test_new_settings_rebuild_the_slot_on_air(station, tmp_path):
     assert [f[3] for f in before if f[0] == '0120'] != [f[3] for f in after if f[0] == '0120']
 
 
+def test_many_rebuilds_of_one_slot_keep_the_newest(station, tmp_path):
+    client, now = station
+    for n in range(8):
+        again = TestClient(create_app(config_for(tmp_path, message=f'Version {n} of {{station}}'), clock=lambda: now[0]))
+        for f in parse(again.get('/wii/now.txt').text)[1]:
+            assert again.get(f[4]).status_code == 200
+
+
 def test_the_guide_background_is_optional(station, tmp_path):
     client, now = station
     assert 'url(bg.png)' not in client.get('/').text and client.get('/bg.png').status_code == 404

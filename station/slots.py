@@ -71,10 +71,12 @@ class SlotCache:
         tmp.rename(final)
 
     def _prune(self, keep_from: Slot):
+        # several builds can share a slot number (the catalog changed mid-slot), so age breaks ties
         built = sorted((p for p in self.root.glob('s*') if p.is_dir() and re.match(r's\d+', p.name)),
-                       key=lambda p: int(re.match(r's(\d+)', p.name)[1]))
+                       key=lambda p: (int(re.match(r's(\d+)', p.name)[1]), p.stat().st_mtime_ns))
         for p in built[:-KEEP]:
-            shutil.rmtree(p, ignore_errors=True)
+            if p != self._dir(keep_from):
+                shutil.rmtree(p, ignore_errors=True)
 
 
 def manifest(slot: Slot, next_slot: Slot, files: list[dict], now: float) -> str:
