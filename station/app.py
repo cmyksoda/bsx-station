@@ -107,7 +107,7 @@ PAGE = '''<!DOCTYPE html>
   .clock{font-size:32px;color:var(--red);font-variant-numeric:tabular-nums;margin-top:10px;padding-top:6px}
   .tune p{margin:4px 0 0;color:var(--dim)}
   code{font-family:var(--pixel);background:var(--navy);color:var(--gold-hi);padding:1px 8px}
-  h3{display:inline-block;font-size:18px;margin:0 0 8px;padding:8px 20px 6px}
+  h3{display:inline-block;font-size:18px;margin:0 0 8px;padding:6px 20px 8px}
   .guide{padding:6px}
   .row{display:grid;grid-template-columns:7.5em 1fr}
   .row+.row{background:linear-gradient(90deg,var(--gold) 50%,transparent 0) 0 0/4px 2px repeat-x}
