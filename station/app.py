@@ -4,6 +4,7 @@ from __future__ import annotations
 import html
 import json
 import time
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse
@@ -14,6 +15,7 @@ from .schedule import Schedule, Slot
 from .slots import SlotCache, manifest
 
 VERSION = '0.1.0'
+STATIC = Path(__file__).parent / 'static'
 
 
 def create_app(config: Config | None = None, clock=time.time) -> FastAPI:
@@ -60,6 +62,10 @@ def create_app(config: Config | None = None, clock=time.time) -> FastAPI:
     def healthz():
         return {'ok': True, 'programs': len(entries)}
 
+    @app.get('/dot.woff2')
+    def font():
+        return FileResponse(STATIC / 'dot.woff2', media_type='font/woff2', headers={'Cache-Control': 'max-age=86400'})
+
     if config.background:
         @app.get('/bg.png')
         def background():
@@ -84,8 +90,9 @@ PAGE = '''<!DOCTYPE html>
 <title>{{name}}</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
 <style>
+  @font-face{font-family:"Station Dot";src:url(dot.woff2) format("woff2");unicode-range:U+20-7E,U+B7}
   :root{--navy:#00296b;--gold:#a58400;--gold-hi:#ffff7b;--brown:#6b3100;--paper:#fff;--gray:#bdbdbd;--ink:#000;
-    --dim:#4a4a5e;--red:#942918;--lamp:#ff0033;--purple:#7339bd;--pixel:"DotGothic16",ui-monospace,monospace}
+    --dim:#4a4a5e;--red:#942918;--lamp:#ff0033;--purple:#7339bd;--pixel:"Station Dot","DotGothic16",ui-monospace,monospace}
   *{box-sizing:border-box} h1,h2,h3,b{font-weight:400}
   body{margin:0;color:var(--ink);font-family:var(--pixel);font-size:16px;line-height:1.6;padding:24px 16px 64px;
     background:var(--purple) {{bg}};image-rendering:pixelated}
@@ -112,11 +119,13 @@ PAGE = '''<!DOCTYPE html>
   .row{display:grid;grid-template-columns:7.5em 1fr}
   .row+.row{background:linear-gradient(90deg,var(--gold) 50%,transparent 0) 0 0/4px 2px repeat-x}
   .row time{color:var(--gold-hi);padding:10px 0 10px 12px;font-variant-numeric:tabular-nums;white-space:nowrap}
-  .row div{padding:10px 14px 10px 4px} .row small{display:block;color:var(--gray);font-size:14px}
+  .row div{padding:10px 14px 10px 4px} .row small{display:block;color:var(--gray)}
   .row.live{background-color:var(--red)} .row.live small{color:#f2c9bd}
   .row.live time::before{content:"";display:inline-block;width:22px;height:22px;margin:0 6px 0 -6px;vertical-align:-5px;
     background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 11' shape-rendering='crispEdges'%3E%3Cpath d='M0 3h5V0l5.5 5.5L5 11V8H0z'/%3E%3Cpath d='M1 4h5V2.5l3 3-3 3V7H1z' fill='%23ff5577'/%3E%3C/svg%3E")}
-  footer{color:#fff;font-size:14px;padding:12px 22px}
+  footer{color:#fff;padding:12px 22px}
+  /* below 16px a dot is under a pixel, so narrow letters need one more to stay apart */
+  .row small,footer{font-size:14px;letter-spacing:1px}
 </style>
 </head>
 <body>

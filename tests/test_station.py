@@ -159,6 +159,13 @@ def test_the_guide_background_is_optional(station, tmp_path):
     assert 'url(bg.png)' in themed.get('/').text and themed.get('/bg.png').content == b'\x89PNG pattern'
 
 
+def test_the_guide_brings_its_own_font(station):
+    client, _ = station
+    font = client.get('/dot.woff2')
+    assert 'url(dot.woff2)' in client.get('/').text
+    assert font.headers['content-type'] == 'font/woff2' and font.content.startswith(b'wOF2')
+
+
 def test_each_slot_gets_the_next_face(station, monkeypatch):
     client, now = station
     faces = []
