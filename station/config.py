@@ -21,6 +21,9 @@ class Config:
     seed: str = field(default_factory=lambda: _env('STATION_SEED', 'satellaview'))
     message: str = field(default_factory=lambda: _env('STATION_MESSAGE', 'Welcome to {station}! On air now: {title}.'))
     building: int = field(default_factory=lambda: int(_env('STATION_BUILDING', '2')))
-    mugshot: int = field(default_factory=lambda: int(_env('STATION_MUGSHOT', '0')))
+    # a face number (0-16, 16 is the BS-X logo), or 'cycle' for the next face every slot
+    mugshot: str = field(default_factory=lambda: _env('STATION_MUGSHOT', 'cycle'))
     autostart: int = field(default_factory=lambda: int(_env('STATION_AUTOSTART', '1')))
     epoch: int = field(default_factory=lambda: int(_env('STATION_EPOCH', '0')))
+    # what the guide tells Wiis to enter, when people read it at a different address
+    address: str = field(default_factory=lambda: _env('STATION_ADDRESS', ''))

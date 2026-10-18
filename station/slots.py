@@ -14,6 +14,7 @@ from .config import Config
 from .schedule import Slot
 
 KEEP = 4
+FACES = 16   # 10h is the BS-X logo and 11h and up crash the BIOS (fullsnes, folder Clerk/Avatar)
 
 
 class SlotCache:
@@ -44,8 +45,9 @@ class SlotCache:
         programs = [Program(e.title, e.description or e.title, (c.rom_dir / e.rom).read_bytes()) for e in slot.entries]
         title = ' / '.join(e.title for e in slot.entries)
         message = c.message.format(station=c.name, title=title)
+        mugshot = slot.index % FACES if c.mugshot == 'cycle' else int(c.mugshot)
         broadcast = build_broadcast(programs, message, folder_name=c.name[:20], folder_message='On air now!',
-                                    place=c.building, mugshot=c.mugshot, autostart=c.autostart)
+                                    place=c.building, mugshot=mugshot, autostart=c.autostart)
         files = export(broadcast, slot.index & 0xFF)   # a new export id is how the BIOS notices new data
         tmp = self.root / f'.{slot.id}.tmp'
         shutil.rmtree(tmp, ignore_errors=True)

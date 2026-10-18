@@ -63,9 +63,9 @@ def create_app(config: Config | None = None, clock=time.time) -> FastAPI:
     @app.get('/', response_class=HTMLResponse)
     def home():
         now = clock()
-        slots = [slot_json(s) for s in schedule.upcoming(now, 24)]
+        data = {'now': now, 'address': config.address, 'slots': [slot_json(s) for s in schedule.upcoming(now, 24)]}
         return HTMLResponse(PAGE.replace('{{name}}', html.escape(config.name))
-                            .replace('{{data}}', json.dumps({'now': now, 'slots': slots}).replace('</', '<\\/')))
+                            .replace('{{data}}', json.dumps(data).replace('</', '<\\/')))
 
     return app
 
@@ -85,21 +85,23 @@ PAGE = '''<!DOCTYPE html>
     --line:#2b3270;--pink:#ff7aa9;--pink-bg:#3a1a3a;--blue:#79b6ff;--blue-bg:#1a2a5c;--sun:#ffd166;--sun-bg:#3a3217;--red:#ff8080}}
   *{box-sizing:border-box} body{margin:0;background:var(--sky);color:var(--ink);font-family:var(--round);line-height:1.6;padding:24px 16px 64px}
   .wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
-  header{background:var(--paper);border:3px solid var(--ink);border-radius:18px;padding:18px 20px;box-shadow:6px 6px 0 var(--pink);display:flex;justify-content:space-between;gap:12px;align-items:start}
+  header,.now,.tune,.guide{background:var(--paper);border:3px solid var(--ink);border-radius:18px;box-shadow:6px 6px 0 var(--accent)}
+  header{--accent:var(--pink);padding:18px 20px;display:flex;justify-content:space-between;gap:12px;align-items:start}
   h1{font-family:var(--pixel);font-weight:400;font-size:clamp(26px,6vw,38px);margin:0;line-height:1.1}
   .jp{font-family:var(--pixel);color:var(--pink);letter-spacing:.2em;font-size:14px}
   .lamp{font-family:var(--pixel);background:var(--red);color:#fff;border-radius:8px;padding:4px 10px;font-size:13px;letter-spacing:.14em;white-space:nowrap}
-  .now{background:var(--sun-bg);border:2px dashed var(--sun);border-radius:16px;padding:16px 18px}
-  .now b{font-family:var(--pixel);font-weight:400;letter-spacing:.12em;font-size:13px}
+  .now{--accent:var(--sun);background:var(--sun-bg);padding:16px 20px}
+  .now b,.tune b{font-family:var(--pixel);font-weight:400;letter-spacing:.12em;font-size:13px}
   .now h2{margin:4px 0;font-size:24px;line-height:1.25} .now p{margin:0;color:var(--soft)}
   .clock{font-family:var(--pixel);font-size:30px;color:var(--pink);font-variant-numeric:tabular-nums}
   h3{font-family:var(--pixel);font-weight:400;font-size:18px;margin:0 0 8px}
-  .guide{background:var(--paper);border:2px solid var(--ink);border-radius:16px;overflow:hidden}
+  .guide{--accent:var(--pink);overflow:hidden}
   .row{display:grid;grid-template-columns:5.5em 1fr;border-top:2px solid var(--line)} .row:first-child{border-top:0}
   .row time{font-family:var(--pixel);color:var(--pink);background:var(--pink-bg);padding:10px;text-align:center;font-variant-numeric:tabular-nums}
   .row div{padding:10px 14px} .row small{display:block;color:var(--faint)}
   .row.live time{background:var(--pink);color:#fff}
-  .tune{background:var(--paper);border-left:6px solid var(--blue);border-radius:12px;padding:12px 16px;color:var(--soft)}
+  .tune{--accent:var(--blue);padding:16px 20px}
+  .tune p{margin:4px 0 0;color:var(--soft)}
   code{background:var(--blue-bg);color:var(--ink);border-radius:6px;padding:1px 6px}
   footer{color:var(--faint);font-size:13px;text-align:center}
 </style>
@@ -108,8 +110,8 @@ PAGE = '''<!DOCTYPE html>
 <div class="wrap">
   <header><div><div class="jp">サテラビュー放送局</div><h1>{{name}}</h1></div><span class="lamp">ON AIR</span></header>
   <section class="now"><b>NOW ON AIR</b><h2 id="title">…</h2><p id="desc"></p><div class="clock" id="left"></div></section>
-  <section class="tune">Tune in with <b>BS-X GX</b> on a Wii: Settings → Network → Station Address <code id="addr"></code>.
-    Then walk into the Broadcast Station in the town.</section>
+  <section class="tune"><b>HOW TO TUNE IN</b><p>On a Wii with BS-X GX: Settings → Network → Station Address
+    <code id="addr"></code>, then walk into the Broadcast Station in the town.</p></section>
   <section><h3>Program guide</h3><div class="guide" id="guide"></div></section>
   <footer>Broadcast format from SatellaWave by LuigiBlood · BS-X GX</footer>
 </div>
@@ -118,7 +120,7 @@ const data = {{data}};
 const skew = data.now - Date.now() / 1000;
 const fmt = t => new Date(t * 1000).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
 const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-document.getElementById('addr').textContent = location.host;
+document.getElementById('addr').textContent = data.address || location.host;
 const cur = data.slots[0];
 document.getElementById('title').textContent = cur.entries.map(e => e.title).join(' / ');
 document.getElementById('desc').textContent = cur.entries.map(e => e.description).join(' · ');

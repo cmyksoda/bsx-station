@@ -4,6 +4,7 @@ import pytest
 import yaml
 from fastapi.testclient import TestClient
 
+from station import slots as slots_mod
 from station.app import create_app
 from station.catalog import Entry, load
 from station.config import Config
@@ -81,6 +82,17 @@ def test_api_and_page(station):
     page = client.get('/')
     assert page.status_code == 200 and 'NOW ON AIR' in page.text
     assert client.get('/healthz').json() == {'ok': True, 'programs': 3}
+
+
+def test_each_slot_gets_the_next_face(station, monkeypatch):
+    client, now = station
+    faces = []
+    real = slots_mod.build_broadcast
+    monkeypatch.setattr(slots_mod, 'build_broadcast', lambda *a, **kw: faces.append(kw['mugshot']) or real(*a, **kw))
+    for _ in range(3):
+        client.get('/wii/now.txt')
+        now[0] += 30 * 60
+    assert faces[1] == (faces[0] + 1) % 16 and faces[2] == (faces[0] + 2) % 16
 
 
 def test_catalog_rejects_duplicate_ids(tmp_path):
