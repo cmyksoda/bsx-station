@@ -1,7 +1,9 @@
 """Builds each slot's channel files once, on first request, and keeps a few around on disk."""
 from __future__ import annotations
 
+import hashlib
 import json
+import re
 import shutil
 import threading
 import zlib
@@ -26,7 +28,7 @@ class SlotCache:
 
     def files(self, slot: Slot) -> list[dict]:
         """[{name, lci, index, size, crc}] for the slot, building it if needed."""
-        index = self.root / slot.id / 'files.json'
+        index = self._dir(slot) / 'files.json'
         if index.exists():
             return json.loads(index.read_text())
         with self.lock:
@@ -38,7 +40,13 @@ class SlotCache:
     def path(self, slot: Slot, name: str) -> Path | None:
         if not any(f['name'] == name for f in self.files(slot)):
             return None
-        return self.root / slot.id / name
+        return self._dir(slot) / name
+
+    def _dir(self, slot: Slot) -> Path:
+        # what went into a build is part of its name, so a new catalog or new settings rebuild the slot on air
+        c = self.config
+        made_of = repr((slot.entries, c.name, c.message, c.building, c.mugshot, c.autostart))
+        return self.root / f'{slot.id}-{hashlib.sha1(made_of.encode()).hexdigest()[:8]}'
 
     def _build(self, slot: Slot):
         c = self.config
@@ -49,7 +57,8 @@ class SlotCache:
         broadcast = build_broadcast(programs, message, folder_name=c.name[:20], folder_message='On air now!',
                                     place=c.building, mugshot=mugshot, autostart=c.autostart)
         files = export(broadcast, slot.index & 0xFF)   # a new export id is how the BIOS notices new data
-        tmp = self.root / f'.{slot.id}.tmp'
+        final = self._dir(slot)
+        tmp = self.root / f'.{final.name}.tmp'
         shutil.rmtree(tmp, ignore_errors=True)
         tmp.mkdir()
         listing = []
@@ -58,12 +67,12 @@ class SlotCache:
             listing.append({'name': name, 'lci': name[3:7], 'index': int(name[8:-4]), 'size': len(data),
                             'crc': f'{zlib.crc32(data):08x}'})
         (tmp / 'files.json').write_text(json.dumps(listing))
-        shutil.rmtree(self.root / slot.id, ignore_errors=True)
-        tmp.rename(self.root / slot.id)
+        shutil.rmtree(final, ignore_errors=True)
+        tmp.rename(final)
 
     def _prune(self, keep_from: Slot):
-        built = sorted((p for p in self.root.glob('s*') if p.is_dir() and p.name[1:].isdigit()),
-                       key=lambda p: int(p.name[1:]))
+        built = sorted((p for p in self.root.glob('s*') if p.is_dir() and re.match(r's\d+', p.name)),
+                       key=lambda p: int(re.match(r's(\d+)', p.name)[1]))
         for p in built[:-KEEP]:
             shutil.rmtree(p, ignore_errors=True)
 

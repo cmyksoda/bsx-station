@@ -13,6 +13,11 @@ from station.schedule import Schedule
 from tests.test_satdata import fake_rom
 
 
+def config_for(tmp_path, **settings):
+    return Config(rom_dir=tmp_path / 'roms', catalog=tmp_path / 'catalog.yml', cache_dir=tmp_path / 'cache',
+                  slot_minutes=30, seed='test', **settings)
+
+
 @pytest.fixture
 def station(tmp_path):
     roms = tmp_path / 'roms'
@@ -24,9 +29,8 @@ def station(tmp_path):
         programs.append({'id': f'g{i}', 'title': f'Game {i}', 'rom': f'game{i}.sfc', 'description': f'Test game {i}'})
     catalog = tmp_path / 'catalog.yml'
     catalog.write_text(yaml.safe_dump({'programs': programs}))
-    config = Config(rom_dir=roms, catalog=catalog, cache_dir=tmp_path / 'cache', slot_minutes=30, seed='test')
     now = [1_800_000_000.0 + 60]
-    client = TestClient(create_app(config, clock=lambda: now[0]))
+    client = TestClient(create_app(config_for(tmp_path), clock=lambda: now[0]))
     return client, now
 
 
@@ -129,6 +133,14 @@ def test_api_and_page(station):
     page = client.get('/')
     assert page.status_code == 200 and 'NOW ON AIR' in page.text
     assert client.get('/healthz').json() == {'ok': True, 'programs': 3}
+
+
+def test_new_settings_rebuild_the_slot_on_air(station, tmp_path):
+    client, now = station
+    before = parse(client.get('/wii/now.txt').text)[1]
+    again = TestClient(create_app(config_for(tmp_path, message='Something new on {station}!'), clock=lambda: now[0]))
+    after = parse(again.get('/wii/now.txt').text)[1]
+    assert [f[3] for f in before if f[0] == '0120'] != [f[3] for f in after if f[0] == '0120']
 
 
 def test_each_slot_gets_the_next_face(station, monkeypatch):
