@@ -39,5 +39,5 @@ def from_rom_dir(rom_dir: Path) -> list[dict]:
         base = re.sub(r'\s*\((Japan|En,Ja|Magazine|SoundLink|Standalone Fix|Memory Pack|[0-9-]+)\)', '', p.stem)
         base = re.sub(r'^BS\s+', '', base).strip()
         short = base.split(' - ')[-1] if len(base) > 20 else base
-        out.append({'id': slug(p.stem)[:48], 'title': short[:20], 'rom': p.name, 'description': p.stem})
+        out.append({'id': slug(p.stem), 'title': short[:20], 'rom': p.name, 'description': p.stem})
     return out
