@@ -33,11 +33,13 @@ def main(src: str, out: str) -> None:
         if not glyph.numberOfContours:
             continue
         glyph.recalcBounds(glyf)
-        # the outlines sit half a dot off the pixel grid at 16px; the extra half dot puts each stroke on one pixel
-        first, last = round((glyph.xMin + DOT // 2) / DOT), round((glyph.xMax + DOT // 2) / DOT)
+        # most outlines sit half a dot off the pixel grid at 16px and need half a dot more to put each stroke on one
+        # pixel; brackets, dashes and stops already sit on it
+        half = DOT // 2 if 0.25 < glyph.xMin / DOT % 1 < 0.75 else 0
+        first, last = round((glyph.xMin + half) / DOT), round((glyph.xMax + half) / DOT)
         if name in digits:
-            first, last = 1, 8    # digits keep one width so the clock doesn't wobble
-        glyph.coordinates.translate((DOT // 2 - first * DOT, 0))
+            half, first, last = DOT // 2, 1, 8    # digits keep one width so the clock doesn't wobble
+        glyph.coordinates.translate((half - first * DOT, 0))
         glyph.recalcBounds(glyf)
         hmtx[name] = ((last - first + 1) * DOT, glyph.xMin)
     hmtx[cmap[0x20]] = (SPACE * DOT, 0)
