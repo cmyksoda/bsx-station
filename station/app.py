@@ -114,10 +114,10 @@ PAGE = '''<!DOCTYPE html>
     calc(100% - 2px) 100%,2px 100%,0 calc(100% - 2px),0 2px)}
   header{padding:18px 22px;display:flex;justify-content:space-between;gap:12px;align-items:start}
   h1{font-size:clamp(28px,7vw,40px);margin:0;line-height:1.1}
-  .jp{color:var(--gold-hi);letter-spacing:.1em}
-  .lamp{background:var(--lamp);color:#fff;border:2px solid var(--ink);padding:2px 10px;letter-spacing:.1em;white-space:nowrap}
+  .jp{color:var(--gold-hi);letter-spacing:2px}
+  .lamp{background:var(--lamp);color:#fff;border:2px solid var(--ink);padding:2px 10px;letter-spacing:2px;white-space:nowrap}
   .now,.tune{padding:16px 22px}
-  .now b,.tune b{color:var(--red);letter-spacing:.1em}
+  .now b,.tune b{color:var(--red);letter-spacing:2px}
   .now h2{margin:4px 0;font-size:24px;line-height:1.3} .now p{margin:0;color:var(--dim)}
   .dots{background:linear-gradient(90deg,var(--gray) 50%,transparent 0) 0 0/4px 2px repeat-x}
   .clock{font-size:32px;color:var(--red);font-variant-numeric:tabular-nums;margin-top:10px;padding-top:6px}
