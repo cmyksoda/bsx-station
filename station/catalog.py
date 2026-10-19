@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 import yaml
@@ -19,12 +20,19 @@ class Entry:
     description: str = ''
     series: str = ''    # a series airs back to back in episode order; one episode with several entries rotates
     episode: int = 0
+    # the broadcast's start in Japan time: games that keep to the satellite's clock see the slot as that hour;
+    # empty leaves the Wii on its own clock
+    airs: str = ''
+
+
+def broadcast_time(value) -> str:
+    return datetime.fromisoformat(str(value)).strftime('%Y-%m-%d %H:%M:%S') if value else ''
 
 
 def load(path: Path) -> list[Entry]:
     data = yaml.safe_load(path.read_text()) or {}
     entries = [Entry(str(e['id']), str(e['title'])[:20], str(e['rom']), str(e.get('description', '')),
-                     str(e.get('series', '')), int(e.get('episode', 0)))
+                     str(e.get('series', '')), int(e.get('episode', 0)), broadcast_time(e.get('airs')))
                for e in data.get('programs', [])]
     ids = [e.id for e in entries]
     if len(ids) != len(set(ids)):

@@ -107,12 +107,28 @@ def test_manifest_matches_the_data(station):
     head, files = parse(client.get('/wii/now.txt').text)
     assert head['bsxgx'] == '1' and head['slot'].startswith('s') and 'end' in head
     assert int(head['ends_in']) == 30 * 60 - 60 and int(head['files']) == len(files)
+    assert 'clock' not in head
     assert any(f[0] == '0124' for f in files)
     for lci, index, size, crc, url in files:
         r = client.get(url)
         assert r.status_code == 200 and int(r.headers['content-length']) == size == len(r.content)
         assert f'{zlib.crc32(r.content):08x}' == crc
         assert 'transfer-encoding' not in r.headers
+
+
+def test_a_program_with_a_broadcast_time_sends_its_clock(tmp_path):
+    (tmp_path / 'roms').mkdir()
+    (tmp_path / 'roms' / 'zelda.sfc').write_bytes(fake_rom()[0])
+    (tmp_path / 'catalog.yml').write_text('programs:\n- {id: z, title: Zelda 3, rom: zelda.sfc, airs: 1995-08-20 18:00:00}\n'
+                                          '- {id: y, title: Yoshi, rom: zelda.sfc, airs: "1996-03-03 18:00"}\n')
+    now = [1_800_000_000.0 + 125.5]
+    client = TestClient(create_app(config_for(tmp_path), clock=lambda: now[0]))
+    clocks = set()
+    for _ in range(2):
+        head, _ = parse(client.get('/wii/now.txt').text)
+        clocks.add(head['clock'])
+        now[0] += 30 * 60
+    assert clocks == {'1995-08-20 18:00:00 125500', '1996-03-03 18:00:00 125500'}
 
 
 def test_previous_slot_stays_downloadable_but_older_ones_do_not(station):

@@ -84,6 +84,10 @@ def manifest(slot: Slot, next_slot: Slot, files: list[dict], now: float) -> str:
     next_title = ' / '.join(e.title for e in next_slot.entries)
     lines = [f'bsxgx {MANIFEST_VERSION}', f'slot {slot.id}', f'title {title}', f'next {next_title}',
              f'ends_in {max(0, int(slot.end - now))}', f'files {len(files)}']
+    airs = next((e.airs for e in slot.entries if e.airs), '')
+    if airs:
+        # the broadcast's start and how far in it is: the Wii runs the satellite clock on from there
+        lines.append(f'clock {airs} {int((now - slot.start) * 1000)}')
     lines += [f"f {f['lci']} {f['index']} {f['size']} {f['crc']} /data/{slot.id}/{f['name']}" for f in files]
     lines.append('end')
     return '\n'.join(lines) + '\n'
