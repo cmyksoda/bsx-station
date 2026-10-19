@@ -24,6 +24,7 @@ class Entry:
     # empty leaves the Wii on its own clock
     airs: str = ''
     minutes: int = 0    # how long its slot runs; 0 for the station's slot length
+    radio: str = ''     # the broadcast's radio, a file in the radio directory whose second 0 is the start
 
 
 def broadcast_time(value) -> str:
@@ -34,7 +35,7 @@ def load(path: Path) -> list[Entry]:
     data = yaml.safe_load(path.read_text()) or {}
     entries = [Entry(str(e['id']), str(e['title'])[:20], str(e['rom']), str(e.get('description', '')),
                      str(e.get('series', '')), int(e.get('episode', 0)), broadcast_time(e.get('airs')),
-                     int(e.get('minutes', 0)))
+                     int(e.get('minutes', 0)), str(e.get('radio', '')))
                for e in data.get('programs', [])]
     ids = [e.id for e in entries]
     if len(ids) != len(set(ids)):

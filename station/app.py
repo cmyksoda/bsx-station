@@ -33,7 +33,7 @@ def create_app(config: Config | None = None, clock=time.time) -> FastAPI:
     def wii_now():
         now = clock()
         slot = schedule.at(now)
-        return PlainTextResponse(manifest(slot, schedule.slot(slot.index + 1), cache.files(slot), now))
+        return PlainTextResponse(manifest(slot, schedule.slot(slot.index + 1), cache.files(slot), now, cache.radio(slot)))
 
     @app.get('/data/{slot_id}/{name}')
     def data(slot_id: str, name: str):
@@ -45,6 +45,15 @@ def create_app(config: Config | None = None, clock=time.time) -> FastAPI:
                 if path:
                     return FileResponse(path, media_type='application/octet-stream')
         raise HTTPException(404)
+
+    radio_names = {e.radio for e in entries if e.radio}
+
+    @app.get('/radio/{name}')
+    def radio(name: str):
+        path = config.radio_dir / name
+        if name not in radio_names or not path.is_file():
+            raise HTTPException(404)
+        return FileResponse(path, media_type='audio/ogg')
 
     @app.get('/api/now')
     def api_now():

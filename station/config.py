@@ -16,6 +16,7 @@ class Config:
     rom_dir: Path = field(default_factory=lambda: Path(_env('STATION_ROM_DIR', 'roms')))
     catalog: Path = field(default_factory=lambda: Path(_env('STATION_CATALOG', 'catalog.yml')))
     cache_dir: Path = field(default_factory=lambda: Path(_env('STATION_CACHE_DIR', 'cache')))
+    radio_dir: Path = field(default_factory=lambda: Path(_env('STATION_RADIO_DIR', 'radio')))
     slot_minutes: int = field(default_factory=lambda: int(_env('STATION_SLOT_MINUTES', '30')))
     games_per_slot: int = field(default_factory=lambda: int(_env('STATION_GAMES_PER_SLOT', '1')))
     seed: str = field(default_factory=lambda: _env('STATION_SEED', 'satellaview'))

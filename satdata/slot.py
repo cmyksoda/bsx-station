@@ -41,7 +41,11 @@ def build_broadcast(programs: list[Program], message: str, folder_name: str = 'B
                   **timeslot(p))
              for i, p in enumerate(programs)]
     folder = Folder(folder_name, folder_message, files, place=place, mugshot=mugshot)
-    return Broadcast(message, message_lci, TownStatus(lci=town_lci), dir_lci, [folder])
+    # St.GIGA's radio carried a SoundLink program's hour: the town turns the receiver's audio on and keeps only its
+    # sound effects, so the radio isn't played over the town's music
+    radio = any(p.airs for p in programs)
+    town = TownStatus(lci=town_lci, apu_setup=1, radio_setup=1) if radio else TownStatus(lci=town_lci)
+    return Broadcast(message, message_lci, town, dir_lci, [folder])
 
 
 def manifest(slot_id: str, files: dict[str, bytes], title: str, next_title: str, ends_in: int, url_prefix: str) -> str:

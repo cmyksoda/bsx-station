@@ -8,6 +8,7 @@ import shutil
 import threading
 import zlib
 from datetime import datetime
+from functools import lru_cache
 from pathlib import Path
 
 from satdata.export import export
@@ -37,6 +38,15 @@ class SlotCache:
                 self._build(slot)
                 self._prune(slot)
         return json.loads(index.read_text())
+
+    def radio(self, slot: Slot) -> dict | None:
+        """{name, size, crc} of the slot's radio track, when it has one on disk."""
+        name = next((e.radio for e in slot.entries if e.radio), '')
+        path = self.config.radio_dir / name
+        if not name or not path.is_file():
+            return None
+        st = path.stat()
+        return {'name': name, **fingerprint(str(path), st.st_size, st.st_mtime_ns)}
 
     def path(self, slot: Slot, name: str) -> Path | None:
         if not any(f['name'] == name for f in self.files(slot)):
@@ -82,7 +92,16 @@ class SlotCache:
                 shutil.rmtree(p, ignore_errors=True)
 
 
-def manifest(slot: Slot, next_slot: Slot, files: list[dict], now: float) -> str:
+@lru_cache(maxsize=64)
+def fingerprint(path: str, size: int, mtime: int) -> dict:
+    crc = 0
+    with open(path, 'rb') as f:
+        while chunk := f.read(1 << 20):
+            crc = zlib.crc32(chunk, crc)
+    return {'size': size, 'crc': f'{crc:08x}'}
+
+
+def manifest(slot: Slot, next_slot: Slot, files: list[dict], now: float, radio: dict | None = None) -> str:
     title = ' / '.join(e.title for e in slot.entries)
     next_title = ' / '.join(e.title for e in next_slot.entries)
     lines = [f'bsxgx {MANIFEST_VERSION}', f'slot {slot.id}', f'title {title}', f'next {next_title}',
@@ -91,6 +110,8 @@ def manifest(slot: Slot, next_slot: Slot, files: list[dict], now: float) -> str:
     if airs:
         # the broadcast's start and how far in it is: the Wii runs the satellite clock on from there
         lines.append(f'clock {airs} {int((now - slot.start) * 1000)}')
+    if radio:
+        lines.append(f"radio {radio['size']} {radio['crc']} /radio/{radio['name']}")
     lines += [f"f {f['lci']} {f['index']} {f['size']} {f['crc']} /data/{slot.id}/{f['name']}" for f in files]
     lines.append('end')
     return '\n'.join(lines) + '\n'

@@ -1,5 +1,6 @@
 import hashlib
 import zlib
+from datetime import datetime
 
 import pytest
 import yaml
@@ -10,6 +11,8 @@ from station.app import create_app
 from station.catalog import Entry, dat_good, from_rom_dir, load, series_of
 from station.config import Config
 from station.schedule import Schedule, Slot
+from satdata.export import town_status
+from satdata.slot import Program, build_broadcast
 from tests.test_satdata import fake_rom
 
 
@@ -144,6 +147,36 @@ def test_a_program_with_a_broadcast_time_sends_its_clock(tmp_path):
         clocks.add(head['clock'])
         now[0] += 30 * 60
     assert clocks == {'1995-08-20 18:00:00 125500', '1996-03-03 18:00:00 125500'}
+
+
+def test_a_broadcast_with_a_radio_track_sends_it(tmp_path):
+    (tmp_path / 'roms').mkdir()
+    (tmp_path / 'roms' / 'oni.sfc').write_bytes(fake_rom()[0])
+    (tmp_path / 'radio').mkdir()
+    track = bytes(range(256)) * 300
+    (tmp_path / 'radio' / 'oni-2.ogg').write_bytes(track)
+    (tmp_path / 'radio' / 'secret.ogg').write_bytes(b'not on the air')
+    (tmp_path / 'catalog.yml').write_text('programs:\n- {id: o, title: Oni 2, rom: oni.sfc, airs: 1997-01-18 18:00, '
+                                          'radio: oni-2.ogg}\n- {id: p, title: Plain, rom: oni.sfc}\n')
+    now = [1_800_000_000.0 + 60]
+    client = TestClient(create_app(config_for(tmp_path, radio_dir=tmp_path / 'radio'), clock=lambda: now[0]))
+    radio = set()
+    for _ in range(2):
+        head, _ = parse(client.get('/wii/now.txt').text)
+        radio.add(head.get('radio'))
+        now[0] += 30 * 60
+    assert radio == {f'{len(track)} {zlib.crc32(track):08x} /radio/oni-2.ogg', None}
+    r = client.get('/radio/oni-2.ogg')
+    assert r.status_code == 200 and r.content == track and int(r.headers['content-length']) == len(track)
+    assert client.get('/radio/secret.ogg').status_code == 404
+
+
+def test_the_town_turns_the_radio_on_for_a_broadcast():
+    data, _ = fake_rom()
+    on = build_broadcast([Program('Oni 2', 'Episode 2', data, airs=datetime(1997, 1, 18, 18, 0))], 'Hi')
+    off = build_broadcast([Program('Plain', 'A game', data)], 'Hi')
+    assert (on.town.radio_setup, off.town.radio_setup) == (1, 0)
+    assert town_status(on.town, 1, [0])[7] == 1 << 6 | 1 << 4 and town_status(off.town, 1, [0])[7] == 3 << 4
 
 
 def test_previous_slot_stays_downloadable_but_older_ones_do_not(station):
