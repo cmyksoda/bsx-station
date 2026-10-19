@@ -141,8 +141,8 @@ PAGE = '''<!DOCTYPE html>
 <div class="wrap">
   <header><div><div class="jp">サテラビュー放送局</div><h1>{{name}}</h1></div><span class="lamp">ON AIR</span></header>
   <section class="now"><b>NOW ON AIR</b><h2 id="title">…</h2><p id="desc"></p><div class="clock dots" id="left"></div></section>
-  <section class="tune"><b>HOW TO TUNE IN</b><p>On a Wii with BS-X GX: Settings → Network → Station Address
-    <code id="addr"></code>, then walk into the Broadcast Station in the town.</p></section>
+  <section class="tune"><b>HOW TO TUNE IN</b><p>On a Wii with BS-X GX: Settings → Network → Station Address →
+    <code id="addr"></code><br>Then, walk into the Broadcast Station in the town.</p></section>
   <section><h3>Program guide</h3><div class="guide" id="guide"></div></section>
   <footer>Broadcast format from SatellaWave by LuigiBlood · BS-X GX</footer>
 </div>
