@@ -34,16 +34,15 @@ def timeslot(p: Program) -> dict:
 
 def build_broadcast(programs: list[Program], message: str, folder_name: str = 'BS-X GX',
                     folder_message: str = 'On air now!', place: int = 2, mugshot: int = 0,
-                    autostart: int = 1) -> Broadcast:
+                    autostart: int = 1, radio: bool = False) -> Broadcast:
     lcis = lci_sequence()
     message_lci, town_lci, dir_lci = next(lcis), next(lcis), next(lcis)
     files = [File(p.name, p.description, p.data, file_id=i, lci=next(lcis), program=i * 0x0100, autostart=autostart,
                   **timeslot(p))
              for i, p in enumerate(programs)]
     folder = Folder(folder_name, folder_message, files, place=place, mugshot=mugshot)
-    # St.GIGA's radio carried a SoundLink program's hour: the town turns the receiver's audio on and keeps only its
-    # sound effects, so the radio isn't played over the town's music
-    radio = any(p.airs for p in programs)
+    # St.GIGA's radio carried a SoundLink program's hour: with a track to play, the town turns the receiver's audio on
+    # and keeps only its sound effects, so the radio isn't played over the town's music
     town = TownStatus(lci=town_lci, apu_setup=1, radio_setup=1) if radio else TownStatus(lci=town_lci)
     return Broadcast(message, message_lci, town, dir_lci, [folder])
 

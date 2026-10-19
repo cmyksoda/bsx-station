@@ -171,12 +171,22 @@ def test_a_broadcast_with_a_radio_track_sends_it(tmp_path):
     assert client.get('/radio/secret.ogg').status_code == 404
 
 
-def test_the_town_turns_the_radio_on_for_a_broadcast():
+def test_the_town_hands_over_to_the_radio_only_when_there_is_a_track(tmp_path):
     data, _ = fake_rom()
-    on = build_broadcast([Program('Oni 2', 'Episode 2', data, airs=datetime(1997, 1, 18, 18, 0))], 'Hi')
-    off = build_broadcast([Program('Plain', 'A game', data)], 'Hi')
+    on = build_broadcast([Program('Oni 2', 'Episode 2', data, airs=datetime(1997, 1, 18, 18, 0))], 'Hi', radio=True)
+    off = build_broadcast([Program('Oni 2', 'Episode 2', data, airs=datetime(1997, 1, 18, 18, 0))], 'Hi')
     assert (on.town.radio_setup, off.town.radio_setup) == (1, 0)
     assert town_status(on.town, 1, [0])[7] == 1 << 6 | 1 << 4 and town_status(off.town, 1, [0])[7] == 3 << 4
+    # a catalog entry naming a track that isn't on disk keeps the town's music
+    (tmp_path / 'roms').mkdir()
+    (tmp_path / 'roms' / 'oni.sfc').write_bytes(data)
+    (tmp_path / 'radio').mkdir()
+    (tmp_path / 'catalog.yml').write_text('programs:\n- {id: o, title: Oni 2, rom: oni.sfc, airs: 1997-01-18 18:00, '
+                                          'radio: missing.ogg}\n')
+    cache = slots_mod.SlotCache(config_for(tmp_path, radio_dir=tmp_path / 'radio'))
+    slot = Slot(1, 0, 1800, tuple(load(tmp_path / 'catalog.yml')))
+    town = next(f for f in cache.files(slot) if f['lci'] == '0125')   # message 0120, town 0125, directory 0126
+    assert (cache._dir(slot) / town['name']).read_bytes()[10 + 7] == 3 << 4
 
 
 def test_previous_slot_stays_downloadable_but_older_ones_do_not(station):

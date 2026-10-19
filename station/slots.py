@@ -56,7 +56,7 @@ class SlotCache:
     def _dir(self, slot: Slot) -> Path:
         # what went into a build is part of its name, so a new catalog or new settings rebuild the slot on air
         c = self.config
-        made_of = repr((slot.entries, c.name, c.message, c.building, c.mugshot, c.autostart))
+        made_of = repr((slot.entries, c.name, c.message, c.building, c.mugshot, c.autostart, bool(self.radio(slot))))
         return self.root / f'{slot.id}-{hashlib.sha1(made_of.encode()).hexdigest()[:8]}'
 
     def _build(self, slot: Slot):
@@ -68,7 +68,8 @@ class SlotCache:
         message = c.message.format(station=c.name, title=title)
         mugshot = slot.index % FACES if c.mugshot == 'cycle' else int(c.mugshot)
         broadcast = build_broadcast(programs, message, folder_name=c.name[:20], folder_message='On air now!',
-                                    place=c.building, mugshot=mugshot, autostart=c.autostart)
+                                    place=c.building, mugshot=mugshot, autostart=c.autostart,
+                                    radio=bool(self.radio(slot)))
         files = export(broadcast, slot.index & 0xFF)   # a new export id is how the BIOS notices new data
         final = self._dir(slot)
         tmp = self.root / f'.{final.name}.tmp'
