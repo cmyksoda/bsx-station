@@ -28,6 +28,14 @@ def main(src: str, out: str) -> None:
 
     glyf, hmtx, cmap = font['glyf'], font['hmtx'], font.getBestCmap()
     digits = {cmap[c] for c in range(0x30, 0x3a)}
+    # DotGothic16's T stands a dot shorter than its other capitals: its crossbar goes up a dot, its stem with it
+    tee, cap = glyf[cmap[ord('T')]], glyf[cmap[ord('E')]]
+    tee.recalcBounds(glyf)
+    cap.recalcBounds(glyf)
+    lift = round((cap.yMax - tee.yMax) / DOT) * DOT
+    for i, (x, y) in enumerate(tee.coordinates):
+        if y > tee.yMax - 2 * DOT:
+            tee.coordinates[i] = (x, y + lift)
     for name in font.getGlyphOrder():
         glyph = glyf[name]
         if not glyph.numberOfContours:
