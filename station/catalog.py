@@ -23,6 +23,7 @@ class Entry:
     # the broadcast's start in Japan time: games that keep to the satellite's clock see the slot as that hour;
     # empty leaves the Wii on its own clock
     airs: str = ''
+    minutes: int = 0    # how long its slot runs; 0 for the station's slot length
 
 
 def broadcast_time(value) -> str:
@@ -32,7 +33,8 @@ def broadcast_time(value) -> str:
 def load(path: Path) -> list[Entry]:
     data = yaml.safe_load(path.read_text()) or {}
     entries = [Entry(str(e['id']), str(e['title'])[:20], str(e['rom']), str(e.get('description', '')),
-                     str(e.get('series', '')), int(e.get('episode', 0)), broadcast_time(e.get('airs')))
+                     str(e.get('series', '')), int(e.get('episode', 0)), broadcast_time(e.get('airs')),
+                     int(e.get('minutes', 0)))
                for e in data.get('programs', [])]
     ids = [e.id for e in entries]
     if len(ids) != len(set(ids)):

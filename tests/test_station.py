@@ -56,6 +56,21 @@ def test_schedule_is_deterministic_and_visits_everything():
     assert a.at(a.slot(7).start + 5).index == 7
 
 
+def test_equal_lengths_keep_the_half_hour_grid():
+    s = Schedule([Entry(f'g{i}', f'G{i}', f'{i}.sfc') for i in range(5)], 30, 1, 'seed', epoch=7)
+    assert [(s.slot(i).start, s.slot(i).end) for i in range(12)] == [(7 + i * 1800, 7 + (i + 1) * 1800) for i in range(12)]
+
+
+def test_an_hour_long_program_gets_an_hour_and_the_slots_still_tile_the_clock():
+    entries = [Entry(f'g{i}', f'G{i}', f'{i}.sfc') for i in range(4)] + [Entry('z', 'Z', 'z.sfc', minutes=60)]
+    s = Schedule(entries, 30, 1, 'seed')
+    slots = [s.slot(i) for i in range(16)]
+    assert all(a.end == b.start for a, b in zip(slots, slots[1:]))
+    assert {x.end - x.start for x in slots if x.entries[0].id == 'z'} == {3600}
+    assert {x.end - x.start for x in slots if x.entries[0].id != 'z'} == {1800}
+    assert all(s.at(x.start).index == s.at(x.end - 1).index == x.index for x in slots)
+
+
 def test_series_air_back_to_back_in_episode_order():
     singles = [Entry(f'g{i}', f'G{i}', f'{i}.sfc') for i in range(12)]
     run = [Entry(f'z{n}', f'Z{n}', f'z{n}.sfc', series='zelda', episode=n) for n in (3, 1, 4, 2)]

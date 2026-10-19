@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import random
+from bisect import bisect_right
 from dataclasses import dataclass
 from functools import lru_cache
 
@@ -41,6 +42,12 @@ class Schedule:
         self.epoch = epoch
         self.seed = seed
         self._pass = lru_cache(maxsize=8)(self._build_pass)
+        # a pass airs every episode once, so all passes are as long and tile the clock
+        self.pass_length = sum(self._seconds(takes) for b in self.blocks for takes in b)
+
+    def _seconds(self, takes: tuple[Entry, ...]) -> int:
+        # slots shared by several programs keep the station's length
+        return max(e.minutes for e in takes) * 60 or self.length if self.per_slot == 1 else self.length
 
     def _order(self, cycle: int) -> list[int]:
         # a fresh shuffle of the blocks for every pass, reproducible from the seed
@@ -49,22 +56,37 @@ class Schedule:
         rng.shuffle(order)
         return order
 
-    def _build_pass(self, cycle: int) -> tuple[Entry, ...]:
+    def _build_pass(self, cycle: int) -> tuple[tuple[Entry, int, int], ...]:
+        """(entry, start within the pass, seconds) for each episode, in this pass's order."""
         order = self._order(cycle)
         # only the first two can swap, so the previous pass's unswapped order still ends where it really ends
         if len(order) > 2 and order[0] == self._order(cycle - 1)[-1]:
             order[0], order[1] = order[1], order[0]
-        return tuple(takes[cycle % len(takes)] for b in order for takes in self.blocks[b])
+        out, start = [], 0
+        for b in order:
+            for takes in self.blocks[b]:
+                out.append((takes[cycle % len(takes)], start, self._seconds(takes)))
+                start += out[-1][2]
+        return tuple(out)
 
     def slot(self, index: int) -> Slot:
+        if self.per_slot == 1:
+            cycle, pos = divmod(index, self.episodes)
+            entry, offset, seconds = self._pass(cycle)[pos]
+            start = self.epoch + cycle * self.pass_length + offset
+            return Slot(index, start, start + seconds, (entry,))
         picks = []
         for k in range(self.per_slot):
             pos = index * self.per_slot + k
-            picks.append(self._pass(pos // self.episodes)[pos % self.episodes])
+            picks.append(self._pass(pos // self.episodes)[pos % self.episodes][0])
         start = self.epoch + index * self.length
         return Slot(index, start, start + self.length, tuple(picks))
 
     def at(self, t: float) -> Slot:
+        if self.per_slot == 1:
+            cycle = int((t - self.epoch) // self.pass_length)
+            starts = [start for _, start, _ in self._pass(cycle)]
+            return self.slot(cycle * self.episodes + bisect_right(starts, t - self.epoch - cycle * self.pass_length) - 1)
         return self.slot(int((t - self.epoch) // self.length))
 
     def upcoming(self, t: float, count: int) -> list[Slot]:
