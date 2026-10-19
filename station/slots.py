@@ -7,6 +7,7 @@ import re
 import shutil
 import threading
 import zlib
+from datetime import datetime
 from pathlib import Path
 
 from satdata.export import export
@@ -50,7 +51,9 @@ class SlotCache:
 
     def _build(self, slot: Slot):
         c = self.config
-        programs = [Program(e.title, e.description or e.title, (c.rom_dir / e.rom).read_bytes()) for e in slot.entries]
+        programs = [Program(e.title, e.description or e.title, (c.rom_dir / e.rom).read_bytes(),
+                            datetime.fromisoformat(e.airs) if e.airs else None, e.minutes or c.slot_minutes)
+                    for e in slot.entries]
         title = ' / '.join(e.title for e in slot.entries)
         message = c.message.format(station=c.name, title=title)
         mugshot = slot.index % FACES if c.mugshot == 'cycle' else int(c.mugshot)

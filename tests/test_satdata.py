@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -6,6 +7,7 @@ import pytest
 from satdata import Broadcast, File, Folder, TownStatus, export, fragments, lci_sequence, next_lci
 from satdata.export import be24, channel_map, directory, town_status
 from satdata.romfile import find_header, header_size, prepare_download
+from satdata.slot import Program, build_broadcast
 
 ROMS = Path(os.environ.get('BSX_ROMS', Path(__file__).parents[2] / 'snes9xgx/roms/ni-n-sat'))
 
@@ -116,6 +118,18 @@ def test_directory_one_file():
     assert fe[39:42] == bytes(3) and fe[42] == 1 << 2 and fe[43] == 0 and fe[44] == 1 | (3 << 2)
     assert fe[45:47] == bytes(2) and fe[47:52] == bytes([1 << 4, 1 << 3, 0, 23, 59 << 2])
     assert fe[52:58] == bytes(6) and d[-1] == 0 and len(fe) == 59
+
+
+def test_a_broadcast_lists_its_date_and_hours():
+    data, _ = fake_rom()
+    bc = build_broadcast([Program('Onigashima', 'Episode 2', data, airs=datetime(1997, 1, 18, 18, 0), minutes=60),
+                          Program('Late', 'Past midnight', data, airs=datetime(1996, 12, 29, 23, 30), minutes=60)], 'Hi')
+    oni, late = bc.folders[0].files
+    prepared = {id(f): prepare_download(data) for f in (oni, late)}
+    d = directory(bc.folders, 3, prepared)
+    date = d.index(b'Onigashima') - 2 + 24 + len(b'Episode 2\0') + 15
+    assert d[date:date + 5] == bytes([0x10, 0x90, 0x90, 0x13, 0x00])
+    assert (late.hour_start, late.min_start, late.hour_end, late.min_end) == (23, 30, 24, 30)
 
 
 def test_export_has_every_channel():
