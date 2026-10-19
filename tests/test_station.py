@@ -9,7 +9,7 @@ from station import slots as slots_mod
 from station.app import create_app
 from station.catalog import Entry, dat_good, from_rom_dir, load, series_of
 from station.config import Config
-from station.schedule import Schedule
+from station.schedule import Schedule, Slot
 from tests.test_satdata import fake_rom
 
 
@@ -180,6 +180,17 @@ def test_many_rebuilds_of_one_slot_keep_the_newest(station, tmp_path):
         again = TestClient(create_app(config_for(tmp_path, message=f'Version {n} of {{station}}'), clock=lambda: now[0]))
         for f in parse(again.get('/wii/now.txt').text)[1]:
             assert again.get(f[4]).status_code == 200
+
+
+def test_a_renumbered_schedule_keeps_the_slots_on_air(station, tmp_path):
+    cache = slots_mod.SlotCache(config_for(tmp_path))
+    entries = load(tmp_path / 'catalog.yml')
+    for i in (900, 901, 902, 903):      # left behind by an older schedule that numbered its slots higher
+        cache.files(Slot(i, 0, 1800, (entries[0],)))
+    on_air, before = Slot(41, 0, 1800, (entries[1],)), Slot(40, 0, 1800, (entries[2],))
+    cache.files(on_air)
+    cache.files(before)
+    assert cache._dir(on_air).exists() and cache._dir(before).exists()
 
 
 def test_the_guide_background_is_optional(station, tmp_path):
