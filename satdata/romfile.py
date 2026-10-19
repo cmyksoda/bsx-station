@@ -26,6 +26,15 @@ def header_size(h: bytes) -> int | None:
     return None
 
 
+def pack_blocks(data: bytes, o: int) -> list[int]:
+    """The 128 KB blocks holding the content in a whole-pack dump: a pack fills whichever blocks are free, so they
+    can skip over another program's. A dump of the content alone keeps its pack's map but not the gaps: []."""
+    blocks = [i for i in range(8) if data[o + 0x20] >> i & 1]
+    if header_size(data[o:o + 48]) and blocks[0] == o // 0x20000 and (blocks[-1] + 1) * 0x20000 <= len(data):
+        return blocks
+    return []
+
+
 def title(data: bytes) -> str | None:
     o = find_header(data)
     if o is None:
@@ -48,7 +57,8 @@ def prepare_download(data: bytes, dest: int | None = None) -> tuple[bytes, int, 
         raise ValueError(f'{size} bytes will not fit destination {dest}')
 
     start = (o & 0xFF0000) if o is not None else 0
-    payload = bytearray(data[start:start + size])
+    blocks = pack_blocks(data, o) if o is not None else []
+    payload = bytearray(b''.join(data[b * 0x20000:(b + 1) * 0x20000] for b in blocks) or data[start:start + size])
     payload += bytes(size - len(payload))
     if o is not None and dest >= 1:
         p = 0x7FD0 | (0 if lorom else 0x8000)

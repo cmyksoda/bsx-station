@@ -87,6 +87,18 @@ def test_prepare_download_full_pack_for_big_games():
     assert size == 0x100000 and dest == 2
 
 
+def test_prepare_download_follows_a_packs_block_map():
+    data, o = fake_rom()
+    data = bytearray(data)
+    for block in range(8):
+        data[block * 0x20000:block * 0x20000 + 4] = bytes([block]) * 4
+    data[o + 0x20] = 0b10000111                # blocks 0-2, then 7: blocks 3-6 held another program
+    payload, size, _ = prepare_download(bytes(data))
+    assert size == 0x80000 and [payload[i * 0x20000] for i in range(4)] == [0, 1, 2, 7]
+    alone, size, _ = prepare_download(bytes(data[:0x80000]))
+    assert size == 0x80000 and [alone[i * 0x20000] for i in range(4)] == [0, 1, 2, 3]
+
+
 def test_directory_one_file():
     data, _ = fake_rom()
     f = File('Test', 'A test.', data, file_id=0, lci=0x0127, program=0x0000)
