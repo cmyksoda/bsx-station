@@ -1,6 +1,7 @@
 """The station: what's on air for the Wii, the channel files, and a TV guide for people."""
 from __future__ import annotations
 
+import hashlib
 import html
 import json
 import time
@@ -71,6 +72,9 @@ def create_app(config: Config | None = None, clock=time.time) -> FastAPI:
     def healthz():
         return {'ok': True, 'programs': len(entries)}
 
+    # the page asks for the font by its contents, so a browser holding an older one fetches this one
+    font_version = hashlib.sha1((STATIC / 'dot.woff2').read_bytes()).hexdigest()[:8]
+
     @app.get('/dot.woff2')
     def font():
         return FileResponse(STATIC / 'dot.woff2', media_type='font/woff2', headers={'Cache-Control': 'max-age=86400'})
@@ -86,6 +90,7 @@ def create_app(config: Config | None = None, clock=time.time) -> FastAPI:
         data = {'now': now, 'address': config.address, 'slots': [slot_json(s) for s in schedule.upcoming(now, 24)]}
         bg = 'url(bg.png) 0 0/256px 128px' if config.background else ''
         return HTMLResponse(PAGE.replace('{{name}}', html.escape(config.name)).replace('{{bg}}', bg)
+                            .replace('{{font}}', font_version)
                             .replace('{{data}}', json.dumps(data).replace('</', '<\\/')))
 
     return app
@@ -99,7 +104,7 @@ PAGE = '''<!DOCTYPE html>
 <title>{{name}}</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
 <style>
-  @font-face{font-family:"Station Dot";src:url(dot.woff2) format("woff2");unicode-range:U+20-7E,U+B7}
+  @font-face{font-family:"Station Dot";src:url(dot.woff2?v={{font}}) format("woff2");unicode-range:U+20-7E,U+B7}
   :root{--navy:#00296b;--gold:#a58400;--gold-hi:#ffff7b;--brown:#6b3100;--paper:#fff;--gray:#bdbdbd;--ink:#000;
     --dim:#4a4a5e;--red:#942918;--lamp:#ff0033;--purple:#7339bd;--pixel:"Station Dot","DotGothic16",ui-monospace,monospace}
   *{box-sizing:border-box} h1,h2,h3,b{font-weight:400}
