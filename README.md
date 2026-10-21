@@ -76,8 +76,14 @@ Set `BSX_ROMS=/path/to/roms` to also check header detection across a real ROM se
 
 ## Credits
 
-- SatellaWave by LuigiBlood (MIT, see `satdata/LICENSE-SatellaWave`): the broadcast format this port follows.
-- The BS-X Project and everyone who preserved the Satellaview's broadcasts.
+- **SatellaWave** by LuigiBlood (MIT, see `satdata/LICENSE-SatellaWave`), the broadcast format this port follows
+- The BS-X Project and everyone who preserved the Satellaview's broadcasts
+- **DotGothic16** by The DotGothic16 Project Authors, the pixel font behind the guide's lettering (SIL Open Font License 1.1)
+- **FastAPI** by Sebastián Ramírez, **Uvicorn** by Tom Christie and contributors, and **PyYAML** by Kirill Simonov, for the web server and the catalog file
+
+## License
+
+bsx-station is free software under the [GNU Affero General Public License, version 3](LICENSE). Some parts use other licenses: `satdata/` is a port of SatellaWave, which is MIT, and the guide's font is derived from DotGothic16, which is under the SIL Open Font License 1.1. Their texts are in [`satdata/LICENSE-SatellaWave`](satdata/LICENSE-SatellaWave) and [`station/static/OFL.txt`](station/static/OFL.txt).
 
 ---
 
