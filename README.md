@@ -83,7 +83,7 @@ Set `BSX_ROMS=/path/to/roms` to also check header detection across a real ROM se
 
 ## License
 
-bsx-station is free software under the [GNU Affero General Public License, version 3](LICENSE). Some parts use other licenses: `satdata/` is a port of SatellaWave, which is MIT, and the guide's font is derived from DotGothic16, which is under the SIL Open Font License 1.1. Their texts are in [`satdata/LICENSE-SatellaWave`](satdata/LICENSE-SatellaWave) and [`station/static/OFL.txt`](station/static/OFL.txt).
+bsx-station is free software under the [GNU Affero General Public License, version 3 or later](LICENSE). Some parts use other licenses: `satdata/` is a port of SatellaWave, which is MIT, and the guide's font is derived from DotGothic16, which is under the SIL Open Font License 1.1. Their texts are in [`satdata/LICENSE-SatellaWave`](satdata/LICENSE-SatellaWave) and [`station/static/OFL.txt`](station/static/OFL.txt).
 
 ---
 
